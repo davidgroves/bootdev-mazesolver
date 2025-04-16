@@ -72,6 +72,10 @@ class Cell:
     def topright(self) -> Point:
         return Point(self.bottomright.x, self.topleft.y)
 
+    @property
+    def center(self) -> Point:
+        return Point((self.topleft.x + self.bottomright.x) / 2, (self.topleft.y + self.bottomright.y) / 2)
+
     def draw(self):
         if self.walls & Sides.TOP:
             self.window.draw_line(Line(self.topleft, self.topright))
@@ -82,13 +86,19 @@ class Cell:
         if self.walls & Sides.RIGHT:
             self.window.draw_line(Line(self.topright, self.bottomright))
 
+    def draw_move(self, to_cell: Cell, undo: bool = False):
+        color = "red" if not undo else "gray"
+        self.window.draw_line(Line(self.center, to_cell.center), color)
 
 def main():
     win = Window(800, 600)
     line = Line(Point(100, 100), Point(200, 200))
     win.draw_line(line)
-    cell = Cell(win, Point(100, 100), Point(200, 200))
-    cell.draw()
+    cell1 = Cell(win, Point(100, 100), Point(200, 200))
+    cell2 = Cell(win, Point(300, 100), Point(400, 200))
+    cell1.draw()
+    cell2.draw()
+    cell1.draw_move(cell2)
     win.wait_for_close()
 
 
