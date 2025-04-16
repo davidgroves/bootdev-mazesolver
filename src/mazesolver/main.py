@@ -5,6 +5,7 @@ from tkinter import Tk, BOTH, Canvas
 import enum
 import time
 
+
 class Sides(enum.Flag):
     NONE = 0
     TOP = 1
@@ -57,8 +58,15 @@ class Line:
             self.point1.x, self.point1.y, self.point2.x, self.point2.y, fill=color
         )
 
+
 class Cell:
-    def __init__(self, window: Window, topleft: Point, bottomright: Point, walls: Sides = Sides.ALL):
+    def __init__(
+        self,
+        window: Window,
+        topleft: Point,
+        bottomright: Point,
+        walls: Sides = Sides.ALL,
+    ):
         self.window = window
         self.topleft = topleft
         self.bottomright = bottomright
@@ -74,7 +82,10 @@ class Cell:
 
     @property
     def center(self) -> Point:
-        return Point((self.topleft.x + self.bottomright.x) / 2, (self.topleft.y + self.bottomright.y) / 2)
+        return Point(
+            (self.topleft.x + self.bottomright.x) / 2,
+            (self.topleft.y + self.bottomright.y) / 2,
+        )
 
     def draw(self):
         if self.walls & Sides.TOP:
@@ -90,8 +101,18 @@ class Cell:
         color = "red" if not undo else "gray"
         self.window.draw_line(Line(self.center, to_cell.center), color)
 
+
 class Maze:
-    def __init__(self, x_offset: int, y_offset: int, rows: int, cols: int, cell_width: int, cell_height: int, window: Window = None):
+    def __init__(
+        self,
+        x_offset: int,
+        y_offset: int,
+        rows: int,
+        cols: int,
+        cell_width: int,
+        cell_height: int,
+        window: Window = None,
+    ):
         self.topleft = Point(x_offset, y_offset)
         self.rows = rows
         self.cols = cols
@@ -101,10 +122,25 @@ class Maze:
         self.create_cells()
 
     def create_cells(self):
-        self.cells = [[Cell(self.window, Point(x * self.cell_width, y * self.cell_height), Point((x + 1) * self.cell_width, (y + 1) * self.cell_height)) for x in range(self.cols)] for y in range(self.rows)]
+        self.cells = [
+            [
+                Cell(
+                    self.window,
+                    Point(
+                        x * self.cell_width + self.topleft.x,
+                        y * self.cell_height + self.topleft.y,
+                    ),
+                    Point(
+                        (x + 1) * self.cell_width + self.topleft.x,
+                        (y + 1) * self.cell_height + self.topleft.y,
+                    ),
+                )
+                for x in range(self.cols)
+            ]
+            for y in range(self.rows)
+        ]
 
     def draw_cell(self, x: int, y: int):
-        topleft = Point(self.topleft.x + x * self.cell_width, self.topleft.y * self.cell_height)
         self.cells[y][x].draw()
         self.animate()
 
@@ -112,18 +148,40 @@ class Maze:
         self.window.redraw()
         time.sleep(0.05)
 
+    def break_entrance_and_exit(self, x: int, y: int):
+        if x == 0 and y == 0:
+            self.cells[y][x].walls &= ~Sides.LEFT
+        elif x == self.cols - 1 and y == self.rows - 1:
+            self.cells[y][x].walls &= ~Sides.RIGHT
+        elif x == 0:
+            self.cells[y][x].walls &= ~Sides.TOP
+        elif x == self.cols - 1:
+            self.cells[y][x].walls &= ~Sides.BOTTOM
+        else:
+            raise ValueError("Cannot break entrance and exit for non-edge cell")
+
+
 def main():
     win = Window(800, 600)
     line = Line(Point(100, 100), Point(200, 200))
     win.draw_line(line)
 
     rows = cols = 6
-    maze = Maze(x_offset=10, y_offset=10, rows=rows, cols=cols, cell_width=50, cell_height=50, window=win)
+    maze = Maze(
+        x_offset=50,
+        y_offset=50,
+        rows=rows,
+        cols=cols,
+        cell_width=50,
+        cell_height=50,
+        window=win,
+    )
+    maze.break_entrance_and_exit(0, 0)
+    maze.break_entrance_and_exit(cols - 1, rows - 1)
     for r in range(rows):
         for c in range(cols):
             maze.draw_cell(c, r)
 
-    
     win.wait_for_close()
 
 
