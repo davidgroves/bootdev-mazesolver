@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from tkinter import Tk, BOTH, Canvas
 
+import enum
+
+
+class Sides(enum.Flag):
+    NONE = 0
+    TOP = 1
+    BOTTOM = 2
+    LEFT = 4
+    RIGHT = 8
+    ALL = TOP | BOTTOM | LEFT | RIGHT
+
 
 class Window:
     def __init__(
@@ -46,11 +57,38 @@ class Line:
             self.point1.x, self.point1.y, self.point2.x, self.point2.y, fill=color
         )
 
+class Cell:
+    def __init__(self, window: Window, topleft: Point, bottomright: Point, walls: Sides = Sides.ALL):
+        self.window = window
+        self.topleft = topleft
+        self.bottomright = bottomright
+        self.walls = walls
+
+    @property
+    def bottomleft(self) -> Point:
+        return Point(self.topleft.x, self.bottomright.y)
+
+    @property
+    def topright(self) -> Point:
+        return Point(self.bottomright.x, self.topleft.y)
+
+    def draw(self):
+        if self.walls & Sides.TOP:
+            self.window.draw_line(Line(self.topleft, self.topright))
+        if self.walls & Sides.BOTTOM:
+            self.window.draw_line(Line(self.bottomleft, self.bottomright))
+        if self.walls & Sides.LEFT:
+            self.window.draw_line(Line(self.topleft, self.bottomleft))
+        if self.walls & Sides.RIGHT:
+            self.window.draw_line(Line(self.topright, self.bottomright))
+
 
 def main():
     win = Window(800, 600)
     line = Line(Point(100, 100), Point(200, 200))
     win.draw_line(line)
+    cell = Cell(win, Point(100, 100), Point(200, 200))
+    cell.draw()
     win.wait_for_close()
 
 
