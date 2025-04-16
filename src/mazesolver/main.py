@@ -4,6 +4,7 @@ from tkinter import Tk, BOTH, Canvas
 
 import enum
 import time
+import random
 
 
 class Sides(enum.Flag):
@@ -66,11 +67,13 @@ class Cell:
         topleft: Point,
         bottomright: Point,
         walls: Sides = Sides.ALL,
+        visited: bool = False,
     ):
         self.window = window
         self.topleft = topleft
         self.bottomright = bottomright
         self.walls = walls
+        self.visited = visited
 
     @property
     def bottomleft(self) -> Point:
@@ -112,7 +115,10 @@ class Maze:
         cell_width: int,
         cell_height: int,
         window: Window = None,
+        seed: int = None,
     ):
+        if seed is not None:
+            random.seed(seed)
         self.topleft = Point(x_offset, y_offset)
         self.rows = rows
         self.cols = cols
@@ -160,6 +166,52 @@ class Maze:
         else:
             raise ValueError("Cannot break entrance and exit for non-edge cell")
 
+    def break_walls(self, x: int, y: int):
+        self.cells[y][x].visited = True
+        while True:
+            possible_moves = []
+            
+            # Left neighbor
+            if x > 0 and not self.cells[y][x-1].visited:
+                possible_moves.append((x-1, y))
+            # Right neighbor
+            if x < self.cols-1 and not self.cells[y][x+1].visited:
+                possible_moves.append((x+1, y))
+            # Top neighbor
+            if y > 0 and not self.cells[y-1][x].visited:
+                possible_moves.append((x, y-1))
+            # Bottom neighbor
+            if y < self.rows-1 and not self.cells[y+1][x].visited:
+                possible_moves.append((x, y+1))
+
+            if not possible_moves:
+                self.draw_cell(x, y)
+                return
+
+            # Choose random direction
+            next_x, next_y = random.choice(possible_moves)
+            
+            # Break walls between current and chosen cell
+            if next_x < x:  # Moving left
+                self.cells[y][x].walls &= ~Sides.LEFT
+                self.cells[next_y][next_x].walls &= ~Sides.RIGHT
+            elif next_x > x:  # Moving right
+                self.cells[y][x].walls &= ~Sides.RIGHT
+                self.cells[next_y][next_x].walls &= ~Sides.LEFT
+            elif next_y < y:  # Moving up
+                self.cells[y][x].walls &= ~Sides.TOP
+                self.cells[next_y][next_x].walls &= ~Sides.BOTTOM
+            else:  # Moving down
+                self.cells[y][x].walls &= ~Sides.BOTTOM
+                self.cells[next_y][next_x].walls &= ~Sides.TOP
+
+            # Recursively visit next cell
+            self.break_walls(next_x, next_y)
+    
+    def reset_visited_cells(self):
+        for row in self.cells:
+            for cell in row:
+                cell.visited = False
 
 def main():
     win = Window(800, 600)
