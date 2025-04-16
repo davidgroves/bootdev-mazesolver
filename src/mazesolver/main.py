@@ -3,7 +3,7 @@ from __future__ import annotations
 from tkinter import Tk, BOTH, Canvas
 
 import enum
-
+import time
 
 class Sides(enum.Flag):
     NONE = 0
@@ -90,15 +90,40 @@ class Cell:
         color = "red" if not undo else "gray"
         self.window.draw_line(Line(self.center, to_cell.center), color)
 
+class Maze:
+    def __init__(self, x_offset: int, y_offset: int, rows: int, cols: int, cell_width: int, cell_height: int, window: Window = None):
+        self.topleft = Point(x_offset, y_offset)
+        self.rows = rows
+        self.cols = cols
+        self.cell_width = cell_width
+        self.cell_height = cell_height
+        self.window = window
+        self.create_cells()
+
+    def create_cells(self):
+        self.cells = [[Cell(self.window, Point(x * self.cell_width, y * self.cell_height), Point((x + 1) * self.cell_width, (y + 1) * self.cell_height)) for x in range(self.cols)] for y in range(self.rows)]
+
+    def draw_cell(self, x: int, y: int):
+        topleft = Point(self.topleft.x + x * self.cell_width, self.topleft.y * self.cell_height)
+        self.cells[y][x].draw()
+        self.animate()
+
+    def animate(self):
+        self.window.redraw()
+        time.sleep(0.05)
+
 def main():
     win = Window(800, 600)
     line = Line(Point(100, 100), Point(200, 200))
     win.draw_line(line)
-    cell1 = Cell(win, Point(100, 100), Point(200, 200))
-    cell2 = Cell(win, Point(300, 100), Point(400, 200))
-    cell1.draw()
-    cell2.draw()
-    cell1.draw_move(cell2)
+
+    rows = cols = 6
+    maze = Maze(x_offset=10, y_offset=10, rows=rows, cols=cols, cell_width=50, cell_height=50, window=win)
+    for r in range(rows):
+        for c in range(cols):
+            maze.draw_cell(c, r)
+
+    
     win.wait_for_close()
 
 
