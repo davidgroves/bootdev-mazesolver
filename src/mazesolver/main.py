@@ -6,6 +6,8 @@ import enum
 import time
 import random
 
+SLEEP_TIME = 0.05
+
 
 class Sides(enum.Flag):
     NONE = 0
@@ -90,6 +92,22 @@ class Cell:
             (self.topleft.y + self.bottomright.y) / 2,
         )
 
+    @property
+    def left_wall(self) -> bool:
+        return self.walls & Sides.LEFT
+
+    @property
+    def right_wall(self) -> bool:
+        return self.walls & Sides.RIGHT
+
+    @property
+    def top_wall(self) -> bool:
+        return self.walls & Sides.TOP
+
+    @property
+    def bottom_wall(self) -> bool:
+        return self.walls & Sides.BOTTOM
+
     def draw(self):
         if self.walls & Sides.TOP:
             self.window.draw_line(Line(self.topleft, self.topright))
@@ -152,7 +170,7 @@ class Maze:
 
     def animate(self):
         self.window.redraw()
-        time.sleep(0.05)
+        time.sleep(SLEEP_TIME)
 
     def break_entrance_and_exit(self, x: int, y: int):
         if x == 0 and y == 0:
@@ -170,19 +188,19 @@ class Maze:
         self.cells[y][x].visited = True
         while True:
             possible_moves = []
-            
+
             # Left neighbor
-            if x > 0 and not self.cells[y][x-1].visited:
-                possible_moves.append((x-1, y))
+            if x > 0 and not self.cells[y][x - 1].visited:
+                possible_moves.append((x - 1, y))
             # Right neighbor
-            if x < self.cols-1 and not self.cells[y][x+1].visited:
-                possible_moves.append((x+1, y))
+            if x < self.cols - 1 and not self.cells[y][x + 1].visited:
+                possible_moves.append((x + 1, y))
             # Top neighbor
-            if y > 0 and not self.cells[y-1][x].visited:
-                possible_moves.append((x, y-1))
+            if y > 0 and not self.cells[y - 1][x].visited:
+                possible_moves.append((x, y - 1))
             # Bottom neighbor
-            if y < self.rows-1 and not self.cells[y+1][x].visited:
-                possible_moves.append((x, y+1))
+            if y < self.rows - 1 and not self.cells[y + 1][x].visited:
+                possible_moves.append((x, y + 1))
 
             if not possible_moves:
                 self.draw_cell(x, y)
@@ -190,7 +208,7 @@ class Maze:
 
             # Choose random direction
             next_x, next_y = random.choice(possible_moves)
-            
+
             # Break walls between current and chosen cell
             if next_x < x:  # Moving left
                 self.cells[y][x].walls &= ~Sides.LEFT
@@ -207,16 +225,86 @@ class Maze:
 
             # Recursively visit next cell
             self.break_walls(next_x, next_y)
-    
+
     def reset_visited_cells(self):
         for row in self.cells:
             for cell in row:
                 cell.visited = False
 
+    def solve_r(self, x: int, y: int) -> bool:
+        self.animate()
+        self.cells[y][x].visited = True
+        print(f"Solving cell {x}, {y}")
+
+        if x == self.cols - 1 and y == self.rows - 1:
+            print(f"Reached end cell {x}, {y}")
+            return True
+
+        print(f"Left: {self.cells[y][x].left_wall} {bool(self.cells[y][x].left_wall)}")
+        print(f"Right: {self.cells[y][x].right_wall} {bool(self.cells[y][x].right_wall)}")
+        print(f"Top: {self.cells[y][x].top_wall} {bool(self.cells[y][x].top_wall)}")
+        print(f"Bottom: {self.cells[y][x].bottom_wall} {bool(self.cells[y][x].bottom_wall)}")
+        # Try each direction
+        # Left
+        if (
+            x > 0
+            and not self.cells[y][x].left_wall
+            and not self.cells[y][x - 1].visited
+        ):
+            print(f"Moving left from {x}, {y} to {x-1}, {y}")
+            self.cells[y][x].draw_move(self.cells[y][x - 1])
+            if self.solve_r(x - 1, y):
+                return True
+            self.cells[y][x].draw_move(self.cells[y][x - 1], undo=True)
+            print(f"Backtracking from {x-1}, {y} to {x}, {y}")
+
+        # Right
+        if (
+            x < self.cols - 1
+            and not self.cells[y][x].right_wall
+            and not self.cells[y][x + 1].visited
+        ):
+            print(f"Moving right from {x}, {y} to {x+1}, {y}")
+            self.cells[y][x].draw_move(self.cells[y][x + 1])
+            if self.solve_r(x + 1, y):
+                return True
+            self.cells[y][x].draw_move(self.cells[y][x + 1], undo=True)
+            print(f"Backtracking from {x+1}, {y} to {x}, {y}")
+
+        # Up
+        if (
+            y > 0
+            and not self.cells[y][x].top_wall
+            and not self.cells[y - 1][x].visited
+        ):
+            print(f"Moving up from {x}, {y} to {x}, {y-1}")
+            self.cells[y][x].draw_move(self.cells[y - 1][x])
+            if self.solve_r(x, y - 1):
+                return True
+            self.cells[y][x].draw_move(self.cells[y - 1][x], undo=True)
+            print(f"Backtracking from {x}, {y-1} to {x}, {y}")
+
+        # Down
+        if (
+            y < self.rows - 1
+            and not self.cells[y][x].bottom_wall
+            and not self.cells[y + 1][x].visited
+        ):
+            print(f"Moving down from {x}, {y} to {x}, {y+1}")
+            self.cells[y][x].draw_move(self.cells[y + 1][x])
+            if self.solve_r(x, y + 1):
+                return True
+            self.cells[y][x].draw_move(self.cells[y + 1][x], undo=True)
+            print(f"Backtracking from {x}, {y+1} to {x}, {y}")
+
+        # Reset visited state when backtracking
+        self.cells[y][x].visited = False
+        print(f"No solution found from {x}, {y}")
+        return False
+
+
 def main():
     win = Window(800, 600)
-    line = Line(Point(100, 100), Point(200, 200))
-    win.draw_line(line)
 
     rows = cols = 6
     maze = Maze(
@@ -230,9 +318,13 @@ def main():
     )
     maze.break_entrance_and_exit(0, 0)
     maze.break_entrance_and_exit(cols - 1, rows - 1)
+    maze.break_walls(0, 0)
     for r in range(rows):
         for c in range(cols):
             maze.draw_cell(c, r)
+
+    maze.reset_visited_cells()
+    maze.solve_r(0, 0)
 
     win.wait_for_close()
 
