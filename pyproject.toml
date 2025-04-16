@@ -1,0 +1,33 @@
+[project]
+name = "bootdev-mazesolver"
+version = "0.1.0"
+description = "The boot.dev maze solver project."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+    "src/mazesolver",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "mypy>=1.15.0",
+    "pytest>=8.3.5",
+    "ruff>=0.11.5",
+]
+
+[tool.ruff]
+select = ["E", "W", "F", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint]
+extend-select = ["E", "W", "F", "B"]
+
+[tool.mypy]
+files = ["src/mazesolver"]

@@ -1,2 +1,3 @@
 # bootdev-mazesolver
-The boot.dev maze solver project.
+
+The [boot.dev](https://boot.dev) maze solver project.
